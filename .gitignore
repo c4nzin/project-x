@@ -1,2 +1,5 @@
 src/obj
 src/bin
+src/.env
+src/appsettings.Development.json
+.vscode
