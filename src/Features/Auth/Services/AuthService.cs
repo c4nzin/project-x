@@ -68,6 +68,26 @@ namespace src.Features.Auth.Services
             return user;
         }
 
+        public async Task<string> LoginUser(LoginUserDto dto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            var passwordHasher = new PasswordHasher<User>();
+            var result = passwordHasher.VerifyHashedPassword(user, user.Password, dto.Password);
+
+            if (result == PasswordVerificationResult.Failed)
+            {
+                throw new Exception("Invalid password.");
+            }
+
+            return GenerateToken(user);
+        }
+
         public string GenerateToken(User user)
         {
             var handler = new JwtSecurityTokenHandler();

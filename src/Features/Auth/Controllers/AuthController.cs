@@ -22,4 +22,10 @@ public class AuthController : ControllerBase
     {
         return await _authService.RegisterUser(dto);
     }
+
+    [HttpPost("login")]
+    public async Task<string> LoginUser([FromBody] LoginUserDto dto)
+    {
+        return await _authService.LoginUser(dto);
+    }
 }
