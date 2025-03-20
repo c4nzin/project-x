@@ -10,7 +10,7 @@ public class LoginUserDto
 
     [Required(ErrorMessage = "Password is required.")]
     [StringLength(
-        255, // Increase the maximum length
+        255,
         MinimumLength = 6,
         ErrorMessage = "Password must be between 6 and 255 characters."
     )]

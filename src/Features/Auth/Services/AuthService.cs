@@ -10,6 +10,7 @@ using src.contexts;
 using src.Features.Auth.Dtos;
 using src.Features.Auth.Interfaces;
 using src.features.user.entities;
+using src.Utils;
 
 namespace src.Features.Auth.Services
 {
@@ -76,6 +77,9 @@ namespace src.Features.Auth.Services
             {
                 throw new Exception("User not found.");
             }
+
+            var jwtkey = JwtKeyGenerator.GenerateJwtKey();
+            System.Console.WriteLine(jwtkey);
 
             var passwordHasher = new PasswordHasher<User>();
             var result = passwordHasher.VerifyHashedPassword(user, user.Password, dto.Password);
