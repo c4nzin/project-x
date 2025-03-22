@@ -1,14 +1,8 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
-using src.contexts;
-using src.Features.Auth.Interfaces;
-using src.Features.Auth.Services;
-using src.features.user.entities;
+using src.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,11 +49,7 @@ builder
     )
     .AddEnvironmentVariables();
 
-builder.Services.AddDbContext<src.contexts.DbContext>(options =>
-{
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
-});
-
+builder.Services.ConfigureDbContext(builder.Configuration);
 builder
     .Services.AddAuthentication(x =>
     {
@@ -87,12 +77,9 @@ builder
 
 builder.Services.AddAuthorization();
 
-builder
-    .Services.AddIdentity<User, IdentityRole<Guid>>()
-    .AddEntityFrameworkStores<src.contexts.DbContext>()
-    .AddDefaultTokenProviders();
+builder.Services.ConfigureIdentity();
 
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.ConfigureServices(builder.Configuration);
 
 var app = builder.Build();
 
