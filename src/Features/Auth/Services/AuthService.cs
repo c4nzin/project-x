@@ -1,16 +1,17 @@
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using src.contexts;
 using src.Features.Auth.Dtos;
 using src.Features.Auth.Interfaces;
+using src.Features.Auth.Response;
+using src.Features.Auth.Token;
 using src.features.user.entities;
-using src.Utils;
+using DbContext = src.contexts.DbContext;
 
 namespace src.Features.Auth.Services;
 
@@ -20,17 +21,21 @@ public class AuthService : IAuthService
 
     public readonly UserManager<User> _userManager;
 
+    public readonly DbContext _dbContext;
+
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IConfiguration configuration,
         UserManager<User> userManager,
-        ILogger<AuthService> logger
+        ILogger<AuthService> logger,
+        DbContext dbContext
     )
     {
         _jwtKey = configuration["JWT:Key"];
         _userManager = userManager;
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     public async Task<string> RegisterUser(RegisterUserDto dto)
@@ -57,7 +62,7 @@ public class AuthService : IAuthService
         return "User registered successfully.";
     }
 
-    public async Task<string> LoginUser(LoginUserDto dto)
+    public async Task<TokenResponse> LoginUser(LoginUserDto dto)
     {
         var user = await _userManager.FindByEmailAsync(dto.Email);
 
@@ -73,7 +78,21 @@ public class AuthService : IAuthService
             throw new Exception("Invalid password.");
         }
 
-        return GenerateToken(user);
+        var accessToken = GenerateToken(user);
+
+        var refreshToken = new RefreshToken
+        {
+            Token = GenerateRefreshToken(),
+            UserId = user.Id,
+            ExpiresOnUtc = DateTime.UtcNow.AddDays(3),
+            Id = Guid.NewGuid(),
+        };
+
+        _dbContext.RefreshTokens.Add(refreshToken);
+
+        await _dbContext.SaveChangesAsync();
+
+        return new TokenResponse { AccessToken = accessToken, RefreshToken = refreshToken.Token };
     }
 
     //move to jwt service
@@ -107,5 +126,37 @@ public class AuthService : IAuthService
         claims.AddClaim(new Claim(ClaimTypes.Name, user.Email));
 
         return claims;
+    }
+
+    public string GenerateRefreshToken()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    }
+
+    public async Task<TokenRequest> LoginWithRefreshToken(TokenRequest request)
+    {
+        var refreshToken = await _dbContext
+            .RefreshTokens.Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
+
+        if (refreshToken == null)
+        {
+            throw new Exception("Invalid refresh token.");
+        }
+
+        if (refreshToken.ExpiresOnUtc < DateTime.UtcNow)
+        {
+            throw new Exception("Refresh token expired.");
+        }
+
+        string accessToken = GenerateToken(refreshToken.User);
+
+        refreshToken.Token = GenerateRefreshToken();
+
+        refreshToken.ExpiresOnUtc = DateTime.UtcNow.AddDays(3);
+
+        await _dbContext.SaveChangesAsync();
+
+        return new TokenRequest { RefreshToken = refreshToken.Token };
     }
 }

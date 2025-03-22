@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using src.Features.Auth.Token;
 using src.features.user.entities;
 
 namespace src.contexts;
@@ -18,4 +19,6 @@ public class DbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     {
         optionsBuilder.UseNpgsql(_configuration.GetConnectionString("DefaultConnection"));
     }
+
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
 }

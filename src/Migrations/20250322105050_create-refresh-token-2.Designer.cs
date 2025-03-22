@@ -2,7 +2,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -13,9 +12,11 @@ using src.contexts;
 namespace src.Migrations
 {
     [DbContext(typeof(src.contexts.DbContext))] // Use fully qualified name
-    partial class DbContextModelSnapshot : ModelSnapshot
+    [Migration("20250322105050_create-refresh-token-2")]
+    partial class createrefreshtoken2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
