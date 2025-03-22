@@ -1,23 +1,24 @@
+using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
 
-namespace src.contexts
+namespace src.contexts;
+
+public class DbContextFactory : IDesignTimeDbContextFactory<DbContext>
 {
-    public class UserDbContextFactory : IDesignTimeDbContextFactory<UserDbContext>
+    public DbContext CreateDbContext(string[] args)
     {
-        public UserDbContext CreateDbContext(string[] args)
-        {
-            IConfigurationRoot configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json")
-                .Build();
+        IConfigurationRoot configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json")
+            .Build();
 
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-            var optionsBuilder = new DbContextOptionsBuilder<UserDbContext>();
-            optionsBuilder.UseNpgsql(connectionString);
+        var optionsBuilder = new DbContextOptionsBuilder<DbContext>();
+        optionsBuilder.UseNpgsql(connectionString);
 
-            return new UserDbContext(optionsBuilder.Options);
-        }
+        return new DbContext(configuration);
     }
 }

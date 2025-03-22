@@ -12,116 +12,100 @@ using src.Features.Auth.Interfaces;
 using src.features.user.entities;
 using src.Utils;
 
-namespace src.Features.Auth.Services
+namespace src.Features.Auth.Services;
+
+public class AuthService : IAuthService
 {
-    public class AuthService : IAuthService
+    private readonly string _jwtKey;
+
+    public readonly UserManager<User> _userManager;
+
+    private readonly ILogger<AuthService> _logger;
+
+    public AuthService(
+        IConfiguration configuration,
+        UserManager<User> userManager,
+        ILogger<AuthService> logger
+    )
     {
-        private readonly string _jwtKey; //burada jwt keyi saklamak icin tutuyorum
+        _jwtKey = configuration["JWT:Key"];
+        _userManager = userManager;
+        _logger = logger;
+    }
 
-        public readonly UserDbContext _context;
+    public async Task<string> RegisterUser(RegisterUserDto dto)
+    {
+        var isUserExist = await _userManager.FindByEmailAsync(dto.Email);
 
-        private readonly ILogger<AuthService> _logger;
-
-        public AuthService(
-            IConfiguration configuration,
-            UserDbContext context,
-            ILogger<AuthService> logger
-        )
+        if (isUserExist != null)
         {
-            _jwtKey = configuration["JWT:Key"];
-            _context = context;
-            _logger = logger;
+            throw new Exception("User is already registered.");
         }
 
-        public async Task<User> RegisterUser(RegisterUserDto dto)
+        var user = new User { Email = dto.Email, UserName = dto.Name };
+
+        var result = await _userManager.CreateAsync(user, dto.Password);
+
+        if (!result.Succeeded)
         {
-            var isUserExist = await _context.Users.AnyAsync(u =>
-                u.Email == dto.Email || u.Name == dto.Name
-            );
-
-            if (isUserExist)
+            foreach (var errors in result.Errors)
             {
-                throw new Exception("User is already registered.");
+                _logger.LogError($"Registration error : {errors.Description}");
             }
-
-            var passwordHasher = new PasswordHasher<User>();
-            var hashedPassword = passwordHasher.HashPassword(null, dto.Password);
-
-            var user = new User
-            {
-                Email = dto.Email,
-                Name = dto.Name,
-                Password = hashedPassword,
-            };
-
-            _context.Users.Add(user);
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error saving user to database.");
-                throw new Exception("Error saving user to database.");
-            }
-
-            return user;
         }
 
-        public async Task<string> LoginUser(LoginUserDto dto)
+        return "User registered successfully.";
+    }
+
+    public async Task<string> LoginUser(LoginUserDto dto)
+    {
+        var user = await _userManager.FindByEmailAsync(dto.Email);
+
+        if (user == null)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-
-            if (user == null)
-            {
-                throw new Exception("User not found.");
-            }
-
-            var jwtkey = JwtKeyGenerator.GenerateJwtKey();
-            System.Console.WriteLine(jwtkey);
-
-            var passwordHasher = new PasswordHasher<User>();
-            var result = passwordHasher.VerifyHashedPassword(user, user.Password, dto.Password);
-
-            if (result == PasswordVerificationResult.Failed)
-            {
-                throw new Exception("Invalid password.");
-            }
-
-            return GenerateToken(user);
+            throw new Exception("User not found.");
         }
 
-        public string GenerateToken(User user)
+        var result = await _userManager.CheckPasswordAsync(user, dto.Password);
+
+        if (!result)
         {
-            var handler = new JwtSecurityTokenHandler();
-
-            var key = Encoding.ASCII.GetBytes(_jwtKey);
-
-            var credentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature
-            );
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = GenerateClaims(user),
-                Expires = DateTime.UtcNow.AddHours(1),
-                SigningCredentials = credentials,
-            };
-
-            var token = handler.CreateToken(tokenDescriptor);
-
-            return handler.WriteToken(token);
+            throw new Exception("Invalid password.");
         }
 
-        private static ClaimsIdentity GenerateClaims(User user)
+        return GenerateToken(user);
+    }
+
+    //move to jwt service
+    public string GenerateToken(User user)
+    {
+        var handler = new JwtSecurityTokenHandler();
+
+        var key = Encoding.ASCII.GetBytes(_jwtKey);
+
+        var credentials = new SigningCredentials(
+            new SymmetricSecurityKey(key),
+            SecurityAlgorithms.HmacSha256Signature
+        );
+
+        var tokenDescriptor = new SecurityTokenDescriptor
         {
-            var claims = new ClaimsIdentity();
+            Subject = GenerateClaims(user),
+            Expires = DateTime.UtcNow.AddHours(1),
+            SigningCredentials = credentials,
+        };
 
-            claims.AddClaim(new Claim(ClaimTypes.Name, user.Email));
+        var token = handler.CreateToken(tokenDescriptor);
 
-            return claims;
-        }
+        return handler.WriteToken(token);
+    }
+
+    private static ClaimsIdentity GenerateClaims(User user)
+    {
+        var claims = new ClaimsIdentity();
+
+        claims.AddClaim(new Claim(ClaimTypes.Name, user.Email));
+
+        return claims;
     }
 }
