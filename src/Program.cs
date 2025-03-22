@@ -1,4 +1,5 @@
 using System.Text;
+using AutoWrapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -94,6 +95,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseRouting();
+
+app.UseApiResponseAndExceptionWrapper();
 
 app.UseAuthentication();
 app.UseAuthorization();
