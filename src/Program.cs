@@ -1,11 +1,14 @@
 using System.Text;
 using AutoWrapper;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using src.Features.Auth.Dtos;
 using src.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddValidatorsFromAssembly(typeof(LoginUserDtoValidator).Assembly);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

@@ -1,18 +1,25 @@
 using System.ComponentModel.DataAnnotations;
+using FluentValidation;
 
 namespace src.Features.Auth.Dtos;
 
 public class LoginUserDto
 {
-    [Required(ErrorMessage = "Email is required")]
-    [EmailAddress(ErrorMessage = "Invalid email address")]
     public required string Email { get; set; }
 
-    [Required(ErrorMessage = "Password is required.")]
-    [StringLength(
-        255,
-        MinimumLength = 6,
-        ErrorMessage = "Password must be between 6 and 255 characters."
-    )]
     public required string Password { get; set; }
+}
+
+public class LoginUserDtoValidator : AbstractValidator<LoginUserDto>
+{
+    public LoginUserDtoValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty()
+            .WithMessage("Email is required")
+            .EmailAddress()
+            .WithMessage("Invalid email address");
+
+        RuleFor(x => x.Password).NotEmpty().WithMessage("Password is required");
+    }
 }
