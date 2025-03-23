@@ -8,7 +8,7 @@ using src.Features.Auth.Dtos;
 using src.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddValidatorsFromAssembly(typeof(LoginUserDtoValidator).Assembly);
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly, includeInternalTypes: true);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
