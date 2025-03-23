@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using src.Core;
 using src.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -98,7 +99,14 @@ if (app.Environment.IsDevelopment())
 }
 app.UseRouting();
 
-app.UseApiResponseAndExceptionWrapper();
+app.UseApiResponseAndExceptionWrapper(new AutoWrapperOptions
+{
+    UseApiProblemDetailsException = true,
+    IsApiOnly = true
+});
+
+app.UseMiddleware<ValidationMiddleware>();
+
 
 app.UseAuthentication();
 app.UseAuthorization();
