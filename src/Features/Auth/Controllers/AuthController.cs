@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using src.Features.Auth.Dtos;
 using src.Features.Auth.Interfaces;
@@ -10,21 +11,44 @@ namespace src.Features.Auth.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IValidator<RegisterUserDto> _registerUserDtoValidator;
 
-    public AuthController(IAuthService authService)
+    private readonly IValidator<LoginUserDto> _loginUserDtoValidator;
+
+    public AuthController(
+        IAuthService authService,
+        IValidator<RegisterUserDto> registerUserDtoValidator,
+        IValidator<LoginUserDto> loginUserDtoValidator
+    )
     {
         _authService = authService;
+        _registerUserDtoValidator = registerUserDtoValidator;
+        _loginUserDtoValidator = loginUserDtoValidator;
     }
 
     [HttpPost("register")]
     public async Task<string> RegisterUser([FromBody] RegisterUserDto dto)
     {
+        var validationResult = _registerUserDtoValidator.Validate(dto);
+
+        if (!validationResult.IsValid)
+        {
+            throw new Exception("Invalid registration request.");
+        }
+
         return await _authService.RegisterUser(dto);
     }
 
     [HttpPost("login")]
     public async Task<TokenResponse> LoginUser([FromBody] LoginUserDto dto)
     {
+        var validationResult = _loginUserDtoValidator.Validate(dto);
+
+        if (!validationResult.IsValid)
+        {
+            throw new Exception("Invalid login request.");
+        }
+
         return await _authService.LoginUser(dto);
     }
 
