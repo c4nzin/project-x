@@ -1,10 +1,7 @@
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using src.Features.Auth.Dtos;
 using src.Features.Auth.Interfaces;
 using src.Features.Auth.Response;
-using AutoWrapper.Wrappers;
-using AutoWrapper;
 
 namespace src.Features.Auth.Controllers;
 
@@ -14,13 +11,9 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
 
-
-    public AuthController(
-        IAuthService authService
-    )
+    public AuthController(IAuthService authService)
     {
         _authService = authService;
- 
     }
 
     [HttpPost("register")]
@@ -36,8 +29,8 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh")]
-    public Task<TokenRequest> RefreshToken([FromBody] TokenRequest token)
+    public async Task<TokenRequest> RefreshToken([FromBody] TokenRequest token)
     {
-        return _authService.LoginWithRefreshToken(token);
+        return await _authService.LoginWithRefreshToken(token);
     }
 }

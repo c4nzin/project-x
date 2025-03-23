@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
-using FluentValidation;
 using AutoWrapper.Wrappers;
+using FluentValidation;
 
 namespace src.Core;
 
@@ -9,17 +9,20 @@ public class ValidationMiddleware
     private readonly RequestDelegate _next;
     private readonly IServiceProvider _serviceProvider;
 
+    private readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     public ValidationMiddleware(RequestDelegate next, IServiceProvider serviceProvider)
     {
         _next = next;
         _serviceProvider = serviceProvider;
     }
 
-
     public async Task InvokeAsync(HttpContext context)
     {
-        context.Request.EnableBuffering(); 
-
+        context.Request.EnableBuffering(); //bodyi birden fazla read etmek icin.
 
         //body boşsa direkt işlem yapmadan next yapıyoruz hehrangi bir validasyona gerek yok
         if (context.Request.ContentLength == null || context.Request.ContentLength == 0)
@@ -32,13 +35,14 @@ public class ValidationMiddleware
         {
             var bodyType = GetRequestTypeFromRoute(context);
 
-            if (bodyType != null) 
+            if (bodyType != null)
             {
                 context.Request.Body.Position = 0;
-                var requestBody = await JsonSerializer.DeserializeAsync(context.Request.Body, bodyType, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                var requestBody = await JsonSerializer.DeserializeAsync(
+                    context.Request.Body,
+                    bodyType,
+                    _jsonSerializerOptions
+                );
 
                 if (requestBody != null)
                 {
@@ -47,7 +51,9 @@ public class ValidationMiddleware
 
                     if (validator != null)
                     {
-                        var result = await validator.ValidateAsync(new ValidationContext<object>(requestBody));
+                        var result = await validator.ValidateAsync(
+                            new ValidationContext<object>(requestBody)
+                        );
 
                         if (!result.IsValid)
                         {
@@ -64,28 +70,33 @@ public class ValidationMiddleware
         {
             throw; //Burada api exceptiondan için
         }
-        catch (Exception ex)  //burada apiexception dışında bir exception yakalaması için 
+        catch (Exception ex) //burada apiexception dışında bir exception yakalaması için
         {
             throw new ApiException($"Invalid request body or validation middleware error: {ex}");
         }
 
         await _next(context); //delegate ile chaini devam ettiriyoruz.
-    } 
+    }
 
-    private Type? GetRequestTypeFromRoute(HttpContext context)
+    public Type? GetRequestTypeFromRoute(HttpContext context)
     {
         var endpoint = context.GetEndpoint();
 
-        if (endpoint == null) return null;
+        if (endpoint == null)
+            return null;
 
         var handlerMethod = endpoint.Metadata.OfType<Delegate>().FirstOrDefault()?.Method;
 
-        if (handlerMethod == null) return null;
+        if (handlerMethod == null)
+            return null;
 
-        var bodyParam = handlerMethod.GetParameters().FirstOrDefault(p =>
-          !p.ParameterType.IsPrimitive &&
-          p.ParameterType != typeof(string) &&
-          !p.ParameterType.Namespace!.StartsWith("Microsoft"));
+        var bodyParam = handlerMethod
+            .GetParameters()
+            .FirstOrDefault(p =>
+                !p.ParameterType.IsPrimitive
+                && p.ParameterType != typeof(string)
+                && !p.ParameterType.Namespace!.StartsWith("Microsoft")
+            );
 
         return bodyParam?.ParameterType;
     }
