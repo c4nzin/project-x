@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Npgsql.Replication;
-using src.contexts;
 using src.Features.Auth.Interfaces;
 using src.Features.Auth.Services;
 using src.features.user.entities;

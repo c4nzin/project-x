@@ -4,7 +4,6 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using src.Features.Auth.Dtos;
 using src.Utils;
 
 var builder = WebApplication.CreateBuilder(args);

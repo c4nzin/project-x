@@ -5,7 +5,6 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using src.contexts;
 using src.Features.Auth.Dtos;
 using src.Features.Auth.Interfaces;
 using src.Features.Auth.Response;
@@ -15,28 +14,20 @@ using DbContext = src.contexts.DbContext;
 
 namespace src.Features.Auth.Services;
 
-public class AuthService : IAuthService
+public class AuthService(
+    IConfiguration configuration,
+    UserManager<User> userManager,
+    ILogger<AuthService> logger,
+    DbContext dbContext
+) : IAuthService
 {
-    private readonly string _jwtKey;
+    private readonly string _jwtKey = configuration["JWT:Key"];
 
-    public readonly UserManager<User> _userManager;
+    public readonly UserManager<User> _userManager = userManager;
 
-    public readonly DbContext _dbContext;
+    public readonly DbContext _dbContext = dbContext;
 
-    private readonly ILogger<AuthService> _logger;
-
-    public AuthService(
-        IConfiguration configuration,
-        UserManager<User> userManager,
-        ILogger<AuthService> logger,
-        DbContext dbContext
-    )
-    {
-        _jwtKey = configuration["JWT:Key"];
-        _userManager = userManager;
-        _logger = logger;
-        _dbContext = dbContext;
-    }
+    private readonly ILogger<AuthService> _logger = logger;
 
     public async Task<string> RegisterUser(RegisterUserDto dto)
     {
