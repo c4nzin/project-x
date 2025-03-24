@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using AutoWrapper.Wrappers;
 using FluentValidation;
+using src.Utils;
 
 namespace src.Core;
 
@@ -28,17 +29,16 @@ public class ValidationMiddleware
         if (context.Request.ContentLength == null || context.Request.ContentLength == 0)
         {
             await _next(context);
-            return;
         }
 
         try
         {
-            var bodyType = GetRequestTypeFromRoute(context);
+            Type? bodyType = GetRequest.GetRequestTypeFromRoute(context);
 
             if (bodyType != null)
             {
                 context.Request.Body.Position = 0;
-                var requestBody = await JsonSerializer.DeserializeAsync(
+                object? requestBody = await JsonSerializer.DeserializeAsync(
                     context.Request.Body,
                     bodyType,
                     _jsonSerializerOptions
@@ -46,8 +46,8 @@ public class ValidationMiddleware
 
                 if (requestBody != null)
                 {
-                    var validatorType = typeof(IValidator<>).MakeGenericType(bodyType);
-                    var validator = _serviceProvider.GetService(validatorType) as IValidator;
+                    Type? validatorType = typeof(IValidator<>).MakeGenericType(bodyType);
+                    IValidator validator = _serviceProvider.GetService(validatorType) as IValidator;
 
                     if (validator != null)
                     {
@@ -57,7 +57,7 @@ public class ValidationMiddleware
 
                         if (!result.IsValid)
                         {
-                            var errors = result.Errors.Select(e => e.ErrorMessage);
+                            IEnumerable<string> errors = result.Errors.Select(e => e.ErrorMessage);
 
                             throw new ApiException($"errors : {errors}");
                         }
@@ -68,7 +68,7 @@ public class ValidationMiddleware
         }
         catch (ApiException)
         {
-            throw; //Burada api exceptiondan için
+            throw;
         }
         catch (Exception ex) //burada apiexception dışında bir exception yakalaması için
         {
@@ -76,28 +76,5 @@ public class ValidationMiddleware
         }
 
         await _next(context); //delegate ile chaini devam ettiriyoruz.
-    }
-
-    public Type? GetRequestTypeFromRoute(HttpContext context)
-    {
-        var endpoint = context.GetEndpoint();
-
-        if (endpoint == null)
-            return null;
-
-        var handlerMethod = endpoint.Metadata.OfType<Delegate>().FirstOrDefault()?.Method;
-
-        if (handlerMethod == null)
-            return null;
-
-        var bodyParam = handlerMethod
-            .GetParameters()
-            .FirstOrDefault(p =>
-                !p.ParameterType.IsPrimitive
-                && p.ParameterType != typeof(string)
-                && !p.ParameterType.Namespace!.StartsWith("Microsoft")
-            );
-
-        return bodyParam?.ParameterType;
     }
 }
