@@ -1,12 +1,11 @@
 using src.Features.Auth.Dtos;
-using src.Features.Auth.Response;
-using src.features.user.entities;
+using src.Features.Auth.Dtos.Response;
 
 namespace src.Features.Auth.Interfaces;
 
 public interface IAuthService
 {
-    public Task<string> RegisterUser(RegisterUserDto dto);
+    public Task<RegisterUserDto> RegisterUser(RegisterUserDto dto);
 
     public Task<TokenResponse> LoginUser(LoginUserDto dto);
 

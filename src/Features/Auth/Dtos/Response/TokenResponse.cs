@@ -1,4 +1,4 @@
-namespace src.Features.Auth.Response;
+namespace src.Features.Auth.Dtos.Response;
 
 public sealed record TokenResponse
 {

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using src.Features.Auth.Dtos;
+using src.Features.Auth.Dtos.Response;
 using src.Features.Auth.Interfaces;
-using src.Features.Auth.Response;
 
 namespace src.Features.Auth.Controllers;
 
@@ -17,7 +17,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<string> RegisterUser([FromBody] RegisterUserDto dto)
+    public async Task<RegisterUserDto> RegisterUser([FromBody] RegisterUserDto dto)
     {
         return await _authService.RegisterUser(dto);
     }

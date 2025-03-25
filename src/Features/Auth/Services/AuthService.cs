@@ -1,8 +1,9 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using src.Features.Auth.Dtos;
+using src.Features.Auth.Dtos.Response;
 using src.Features.Auth.Interfaces;
-using src.Features.Auth.Response;
 using src.Features.Auth.Token;
 using src.features.user.entities;
 using DbContext = src.contexts.DbContext;
@@ -15,21 +16,24 @@ public class AuthService : IAuthService
     private readonly DbContext _dbContext;
     private readonly ITokenService _tokenService;
     private readonly ILogger<AuthService> _logger;
+    private readonly IMapper _mapper;
 
     public AuthService(
         UserManager<User> userManager,
         ILogger<AuthService> logger,
         DbContext dbContext,
-        ITokenService tokenService
+        ITokenService tokenService,
+        IMapper mapper
     )
     {
         _userManager = userManager;
         _dbContext = dbContext;
         _tokenService = tokenService;
         _logger = logger;
+        _mapper = mapper;
     }
 
-    public async Task<string> RegisterUser(RegisterUserDto dto)
+    public async Task<RegisterUserDto> RegisterUser(RegisterUserDto dto)
     {
         var isUserExist = await _userManager.FindByEmailAsync(dto.Email);
 
@@ -38,7 +42,8 @@ public class AuthService : IAuthService
             throw new Exception("User is already registered.");
         }
 
-        var user = new User { Email = dto.Email, UserName = dto.Name };
+        //dto => User entity...
+        var user = _mapper.Map<User>(dto);
 
         var result = await _userManager.CreateAsync(user, dto.Password);
 
@@ -50,7 +55,9 @@ public class AuthService : IAuthService
             }
         }
 
-        return "User registered successfully.";
+        var mappedUser = _mapper.Map<RegisterUserDto>(user);
+
+        return mappedUser;
     }
 
     public async Task<TokenResponse> LoginUser(LoginUserDto dto)
@@ -71,6 +78,7 @@ public class AuthService : IAuthService
 
         var accessToken = _tokenService.GenerateToken(user);
 
+        //buraya mapper gerekli olabilir belki.
         var refreshToken = new RefreshToken
         {
             Token = _tokenService.GenerateRefreshToken(),
