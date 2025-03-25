@@ -1,10 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using src.Features.Auth.Dtos;
 using src.Features.Auth.Interfaces;
 using src.Features.Auth.Response;
@@ -14,20 +9,25 @@ using DbContext = src.contexts.DbContext;
 
 namespace src.Features.Auth.Services;
 
-public class AuthService(
-    IConfiguration configuration,
-    UserManager<User> userManager,
-    ILogger<AuthService> logger,
-    DbContext dbContext
-) : IAuthService
+public class AuthService : IAuthService
 {
-    private readonly string _jwtKey = configuration["JWT:Key"];
+    private readonly UserManager<User> _userManager;
+    private readonly DbContext _dbContext;
+    private readonly ITokenService _tokenService;
+    private readonly ILogger<AuthService> _logger;
 
-    public readonly UserManager<User> _userManager = userManager;
-
-    public readonly DbContext _dbContext = dbContext;
-
-    private readonly ILogger<AuthService> _logger = logger;
+    public AuthService(
+        UserManager<User> userManager,
+        ILogger<AuthService> logger,
+        DbContext dbContext,
+        ITokenService tokenService
+    )
+    {
+        _userManager = userManager;
+        _dbContext = dbContext;
+        _tokenService = tokenService;
+        _logger = logger;
+    }
 
     public async Task<string> RegisterUser(RegisterUserDto dto)
     {
@@ -69,11 +69,11 @@ public class AuthService(
             throw new Exception("Invalid password.");
         }
 
-        var accessToken = GenerateToken(user);
+        var accessToken = _tokenService.GenerateToken(user);
 
         var refreshToken = new RefreshToken
         {
-            Token = GenerateRefreshToken(),
+            Token = _tokenService.GenerateRefreshToken(),
             UserId = user.Id,
             ExpiresOnUtc = DateTime.UtcNow.AddDays(3),
             Id = Guid.NewGuid(),
@@ -84,44 +84,6 @@ public class AuthService(
         await _dbContext.SaveChangesAsync();
 
         return new TokenResponse { AccessToken = accessToken, RefreshToken = refreshToken.Token };
-    }
-
-    //move to jwt service
-    public string GenerateToken(User user)
-    {
-        var handler = new JwtSecurityTokenHandler();
-
-        var key = Encoding.ASCII.GetBytes(_jwtKey);
-
-        var credentials = new SigningCredentials(
-            new SymmetricSecurityKey(key),
-            SecurityAlgorithms.HmacSha256Signature
-        );
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = GenerateClaims(user),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = credentials,
-        };
-
-        var token = handler.CreateToken(tokenDescriptor);
-
-        return handler.WriteToken(token);
-    }
-
-    private static ClaimsIdentity GenerateClaims(User user)
-    {
-        var claims = new ClaimsIdentity();
-
-        claims.AddClaim(new Claim(ClaimTypes.Name, user.Email));
-
-        return claims;
-    }
-
-    public string GenerateRefreshToken()
-    {
-        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
     }
 
     public async Task<TokenRequest> LoginWithRefreshToken(TokenRequest request)
@@ -140,9 +102,9 @@ public class AuthService(
             throw new Exception("Refresh token expired.");
         }
 
-        string accessToken = GenerateToken(refreshToken.User);
+        string accessToken = _tokenService.GenerateToken(refreshToken.User);
 
-        refreshToken.Token = GenerateRefreshToken();
+        refreshToken.Token = _tokenService.GenerateRefreshToken();
 
         refreshToken.ExpiresOnUtc = DateTime.UtcNow.AddDays(3);
 
