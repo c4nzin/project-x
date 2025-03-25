@@ -23,9 +23,8 @@ public class ValidationMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        context.Request.EnableBuffering(); //bodyi birden fazla read etmek icin.
+        context.Request.EnableBuffering();
 
-        //body boşsa direkt işlem yapmadan next yapıyoruz hehrangi bir validasyona gerek yok
         if (context.Request.ContentLength == null || context.Request.ContentLength == 0)
         {
             await _next(context);
@@ -70,11 +69,11 @@ public class ValidationMiddleware
         {
             throw;
         }
-        catch (Exception ex) //burada apiexception dışında bir exception yakalaması için
+        catch (Exception ex)
         {
             throw new ApiException($"Invalid request body or validation middleware error: {ex}");
         }
 
-        await _next(context); //delegate ile chaini devam ettiriyoruz.
+        await _next(context);
     }
 }

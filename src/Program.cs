@@ -10,6 +10,8 @@ using src.Utils;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly, includeInternalTypes: true);
 
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -99,14 +101,11 @@ if (app.Environment.IsDevelopment())
 }
 app.UseRouting();
 
-app.UseApiResponseAndExceptionWrapper(new AutoWrapperOptions
-{
-    UseApiProblemDetailsException = true,
-    IsApiOnly = true
-});
+app.UseApiResponseAndExceptionWrapper(
+    new AutoWrapperOptions { UseApiProblemDetailsException = true, IsApiOnly = true }
+);
 
 app.UseMiddleware<ValidationMiddleware>();
-
 
 app.UseAuthentication();
 app.UseAuthorization();

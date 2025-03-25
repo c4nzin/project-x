@@ -14,6 +14,7 @@ public static class ServiceExtensions
     )
     {
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, TokenService>();
     }
 
     public static void ConfigureDbContext(
